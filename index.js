@@ -3,6 +3,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const rolesList = document.querySelector(".navbar-hire_roles-list");
   const searchInput = document.getElementById("search");
 
+  console.log(`[depart] DOMContentLoaded — depts=${depts.length} rolesList=${!!rolesList} searchInput=${!!searchInput}`);
+
   const isMobile = () => window.innerWidth <= 991;
   const getRoles = () => Array.from(document.querySelectorAll(".role-item"));
   const sortByAlpha = (a, b) => {
@@ -13,8 +15,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let knownRoleCount = 0;
 
   const reset = () => {
-    console.log("[depart] reset()");
-    getRoles().forEach(role => {
+    const roles = getRoles();
+    console.log(`[depart] reset() — moving ${roles.length} roles back to rolesList`);
+    roles.forEach(role => {
       rolesList.appendChild(role);
       Object.assign(role.style, { display: "none", opacity: "0", order: "999" });
     });
@@ -31,15 +34,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const render = () => {
     const activeDept = document.querySelector(".department-item.is-active");
-    if (!activeDept) { console.log("[depart] render() → no active dept"); return; }
+    if (!activeDept) { console.warn("[depart] render() → BAIL: no active dept"); return; }
 
     const slug = activeDept.getAttribute("data-department")?.toLowerCase().trim();
-    if (!slug) { console.log("[depart] render() → no slug on active dept"); return; }
+    if (!slug) { console.warn("[depart] render() → BAIL: active dept has no data-department attr", activeDept); return; }
 
     const roles = getRoles();
-    if (!roles.length) { console.log("[depart] render() → no roles in DOM"); return; }
+    if (!roles.length) { console.warn("[depart] render() → BAIL: no .role-item in DOM"); return; }
 
-    console.log(`[depart] render() slug="${slug}" roles=${roles.length}`);
+    const filtered = roles.filter(role =>
+      (role.getAttribute("data-role-category") || "").split(/[,;]/).map(s => s.trim().toLowerCase()).includes(slug)
+    );
+
+    console.log(`[depart] render() slug="${slug}" total=${roles.length} filtered=${filtered.length} mobile=${isMobile()}`);
+
+    if (!filtered.length) {
+      console.warn(`[depart] render() → 0 roles matched slug "${slug}". Sample data-role-category values:`,
+        roles.slice(0, 5).map(r => r.getAttribute("data-role-category"))
+      );
+    }
+
     reset();
 
     const deptLink = activeDept.querySelector(".navbar-hire_link");
@@ -54,14 +68,13 @@ document.addEventListener("DOMContentLoaded", () => {
     viewAllInner.textContent = `View all ${deptName} roles →`;
     viewAllBtn.appendChild(viewAllInner);
 
-    const filtered = roles.filter(role =>
-      (role.getAttribute("data-role-category") || "").split(/[,;]/).map(s => s.trim().toLowerCase()).includes(slug)
-    );
-
     const parent = isMobile() ? activeDept.querySelector(".roles-inner") : rolesList;
-    console.log(`[depart] render() filtered=${filtered.length} parent=${parent ? (isMobile() ? "roles-inner" : "rolesList") : "null"}`);
+    console.log(`[depart] render() parent=${parent ? (isMobile() ? ".roles-inner" : "rolesList") : "NULL"}`);
+
     if (parent) {
-      selectRoles(filtered).forEach((role, idx) => {
+      const selection = selectRoles(filtered);
+      console.log(`[depart] render() appending ${selection.length} roles`);
+      selection.forEach((role, idx) => {
         parent.appendChild(role);
         Object.assign(role.style, { display: "flex", order: String(idx) });
         setTimeout(() => role.style.opacity = "1", 10);
@@ -73,6 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
   depts.forEach(dept => {
     dept.addEventListener("mouseenter", () => {
       if (isMobile() || dept.classList.contains("is-active")) return;
+      console.log(`[depart] mouseenter dept="${dept.getAttribute("data-department")}"`);
       depts.forEach(d => d.classList.remove("is-active"));
       dept.classList.add("is-active");
       render();
@@ -83,6 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.target.closest(".navbar-hire_link")) e.preventDefault();
 
       const wasActive = dept.classList.contains("is-active");
+      console.log(`[depart] click dept="${dept.getAttribute("data-department")}" wasActive=${wasActive}`);
       reset();
       depts.forEach(d => d.classList.remove("is-active"));
 
@@ -95,6 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   searchInput?.addEventListener("input", (e) => {
     const q = e.target.value.toLowerCase().trim();
+    console.log(`[depart] search q="${q}"`);
 
     if (q) {
       reset();
@@ -107,6 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
           count++;
         }
       });
+      console.log(`[depart] search matched ${count} roles`);
     } else {
       if (!isMobile()) initDesktop();
       render();
@@ -117,13 +134,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isMobile()) return;
 
     const roles = getRoles();
-    console.log(`[depart] initDesktop() roles=${roles.length} depts=${depts.length}`);
-    if (!roles.length) { console.log("[depart] initDesktop() → waiting for roles"); return; }
+    const allDepts = Array.from(depts);
+    const deptsWithSlug = allDepts.filter(d => d.getAttribute("data-department"));
+    const activeDept = document.querySelector(".department-item.is-active");
 
-    if (!document.querySelector(".department-item.is-active")) {
-      const firstDept = Array.from(depts).find(d => d.getAttribute("data-department"));
-      console.log(`[depart] initDesktop() firstDept=`, firstDept?.getAttribute("data-department"));
-      if (!firstDept) { console.log("[depart] initDesktop() → no dept with data-department yet"); return; }
+    console.log(`[depart] initDesktop() roles=${roles.length} depts=${allDepts.length} deptsWithSlug=${deptsWithSlug.length} active=${activeDept?.getAttribute("data-department") ?? "none"}`);
+
+    if (!roles.length) { console.warn("[depart] initDesktop() → waiting for roles"); return; }
+
+    if (!activeDept) {
+      const firstDept = deptsWithSlug[0];
+      if (!firstDept) {
+        console.warn("[depart] initDesktop() → no dept has data-department yet. All dept attrs:",
+          allDepts.map(d => d.getAttribute("data-department"))
+        );
+        return;
+      }
+      console.log(`[depart] initDesktop() → setting active: "${firstDept.getAttribute("data-department")}"`);
       firstDept.classList.add("is-active");
     }
 
@@ -141,5 +168,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   observer.observe(document.body, { childList: true, subtree: true });
 
+  console.log("[depart] observer started, calling initDesktop()");
   initDesktop();
 });
