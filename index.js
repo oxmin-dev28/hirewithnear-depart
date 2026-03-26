@@ -85,7 +85,6 @@ function initHireComponent(container) {
 
     dept.addEventListener("click", (e) => {
       if (!isMobile()) return;
-      if (!dept.querySelector(".roles-inner")) return;
       if (e.target.closest(".navbar-hire_link-v2, .navbar-hire_link")) e.preventDefault();
 
       const wasActive = dept.classList.contains("is-active");
