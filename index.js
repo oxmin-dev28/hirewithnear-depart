@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   let knownRoleCount = 0;
+  let isDesktopInitialized = false;
 
   const reset = () => {
     getRoles().forEach(role => {
@@ -67,12 +68,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const setFirstDeptActive = () => {
-    if (document.querySelector(".department-item.is-active")) return;
-    const first = Array.from(depts).find(d => d.getAttribute("data-department")) ?? depts[0];
-    first?.classList.add("is-active");
-  };
-
   depts.forEach(dept => {
     dept.addEventListener("mouseenter", () => {
       if (isMobile() || dept.classList.contains("is-active")) return;
@@ -111,26 +106,42 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     } else {
-      if (!isMobile()) setFirstDeptActive();
+      if (!isMobile()) initDesktop();
       render();
     }
   });
 
-  new MutationObserver(() => {
-    const currentCount = getRoles().length;
-    if (currentCount <= knownRoleCount) return;
-    knownRoleCount = currentCount;
-    if (!isMobile()) setFirstDeptActive();
-    render();
-  }).observe(document.body, { childList: true, subtree: true });
-
   const initDesktop = () => {
-    if (isMobile()) return;
-    setFirstDeptActive();
-    render();
+    if (isMobile() || isDesktopInitialized) return;
+
+    const roles = getRoles();
+    if (roles.length === 0) return;
+
+    const firstDept = Array.from(depts).find(d => d.getAttribute("data-department")) ?? depts[0];
+    if (firstDept) {
+      firstDept.classList.add("is-active");
+      render();
+      isDesktopInitialized = true;
+    }
   };
 
+  const observer = new MutationObserver(() => {
+    if (!isDesktopInitialized && !isMobile()) {
+      initDesktop();
+    }
+
+    const currentCount = getRoles().length;
+    if (currentCount > knownRoleCount) {
+      knownRoleCount = currentCount;
+      if (document.querySelector(".department-item.is-active")) {
+        observer.disconnect();
+        render();
+        observer.observe(document.body, { childList: true, subtree: true });
+      }
+    }
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+
   initDesktop();
-  setTimeout(initDesktop, 500);
-  setTimeout(initDesktop, 1500);
 });
