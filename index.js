@@ -1,10 +1,18 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const depts = document.querySelectorAll(".department-item");
-  const rolesList = document.querySelector(".navbar-hire_roles-list");
-  const searchInput = document.getElementById("search");
+  document.querySelectorAll(".navbar-hire_component").forEach(initHireComponent);
+});
+
+function initHireComponent(container) {
+  const depts = container.querySelectorAll(".department-item");
+  const rolesList = container.querySelector(".navbar-hire_roles-list-v2, .navbar-hire_roles-list");
+  const searchInput = container.querySelector("input#search, input[name='search']");
+
+  if (!rolesList || !depts.length) return;
 
   const isMobile = () => window.innerWidth <= 991;
-  const getRoles = () => Array.from(document.querySelectorAll(".role-item"));
+  const getRoles = () => Array.from(container.querySelectorAll(".role-item"));
+  const getActiveDept = () => container.querySelector(".department-item.is-active:not(.hide)");
+
   const sortByAlpha = (a, b) => {
     const text = el => el.querySelector(".navbar-hire_roles-link-text")?.textContent.trim().toLowerCase() || "";
     return text(a).localeCompare(text(b));
@@ -17,8 +25,8 @@ document.addEventListener("DOMContentLoaded", () => {
       rolesList.appendChild(role);
       Object.assign(role.style, { display: "none", opacity: "0", order: "999" });
     });
-    document.querySelectorAll(".roles-inner").forEach(c => c.innerHTML = "");
-    document.querySelector(".view-all-mobile")?.remove();
+    container.querySelectorAll(".roles-inner").forEach(c => c.innerHTML = "");
+    container.querySelector(".view-all-mobile")?.remove();
   };
 
   const selectRoles = (roles) => {
@@ -29,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const render = () => {
-    const activeDept = document.querySelector(".department-item.is-active:not(.hide)");
+    const activeDept = getActiveDept();
     if (!activeDept) return;
 
     const slug = activeDept.getAttribute("data-department")?.toLowerCase().trim();
@@ -44,8 +52,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     reset();
 
-    const deptLink = activeDept.querySelector(".navbar-hire_link");
-    const deptNameEl = activeDept.querySelector(".navbar-hire_roles-text") || activeDept.querySelector(".navbar-hire_link-text");
+    const deptLink = activeDept.querySelector(".navbar-hire_link-v2, .navbar-hire_link");
+    const deptNameEl = activeDept.querySelector(".navbar-hire_roles-text, .navbar-hire_link-text");
     const deptName = deptNameEl?.textContent.trim() || "";
 
     const viewAllBtn = document.createElement("a");
@@ -77,7 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     dept.addEventListener("click", (e) => {
       if (!isMobile()) return;
-      if (e.target.closest(".navbar-hire_link")) e.preventDefault();
+      if (e.target.closest(".navbar-hire_link-v2, .navbar-hire_link")) e.preventDefault();
 
       const wasActive = dept.classList.contains("is-active");
       reset();
@@ -116,8 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const roles = getRoles();
     if (!roles.length) return;
 
-    const activeDept = document.querySelector(".department-item.is-active:not(.hide)");
-    if (!activeDept) {
+    if (!getActiveDept()) {
       const firstDept = Array.from(depts).find(d => d.getAttribute("data-department"));
       if (!firstDept) return;
       firstDept.classList.add("is-active");
@@ -126,14 +133,12 @@ document.addEventListener("DOMContentLoaded", () => {
     render();
   };
 
-  const rolesObserver = new MutationObserver(() => {
+  new MutationObserver(() => {
     const currentCount = getRoles().length;
     if (currentCount <= knownRoleCount) return;
     knownRoleCount = currentCount;
     initDesktop();
-  });
-
-  rolesObserver.observe(document.body, { childList: true, subtree: true });
+  }).observe(container, { childList: true, subtree: true });
 
   const dropdownParent = depts[0]?.closest(".w-dropdown-list") || depts[0]?.parentElement;
   if (dropdownParent) {
@@ -144,4 +149,4 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   initDesktop();
-});
+}
