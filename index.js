@@ -3,8 +3,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const rolesList = document.querySelector(".navbar-hire_roles-list");
   const searchInput = document.getElementById("search");
 
-  console.log(`[depart] DOMContentLoaded — depts=${depts.length} rolesList=${!!rolesList} searchInput=${!!searchInput}`);
-
   const isMobile = () => window.innerWidth <= 991;
   const getRoles = () => Array.from(document.querySelectorAll(".role-item"));
   const sortByAlpha = (a, b) => {
@@ -15,9 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let knownRoleCount = 0;
 
   const reset = () => {
-    const roles = getRoles();
-    console.log(`[depart] reset() — moving ${roles.length} roles back to rolesList`);
-    roles.forEach(role => {
+    getRoles().forEach(role => {
       rolesList.appendChild(role);
       Object.assign(role.style, { display: "none", opacity: "0", order: "999" });
     });
@@ -34,25 +30,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const render = () => {
     const activeDept = document.querySelector(".department-item.is-active:not(.hide)");
-    if (!activeDept) { console.warn("[depart] render() → BAIL: no active dept"); return; }
+    if (!activeDept) return;
 
     const slug = activeDept.getAttribute("data-department")?.toLowerCase().trim();
-    if (!slug) { console.warn("[depart] render() → BAIL: active dept has no data-department attr", activeDept); return; }
+    if (!slug) return;
 
     const roles = getRoles();
-    if (!roles.length) { console.warn("[depart] render() → BAIL: no .role-item in DOM"); return; }
+    if (!roles.length) return;
 
     const filtered = roles.filter(role =>
       (role.getAttribute("data-role-category") || "").split(/[,;]/).map(s => s.trim().toLowerCase()).includes(slug)
     );
-
-    console.log(`[depart] render() slug="${slug}" total=${roles.length} filtered=${filtered.length} mobile=${isMobile()}`);
-
-    if (!filtered.length) {
-      console.warn(`[depart] render() → 0 roles matched slug "${slug}". Sample data-role-category values:`,
-        roles.slice(0, 5).map(r => r.getAttribute("data-role-category"))
-      );
-    }
 
     reset();
 
@@ -69,12 +57,8 @@ document.addEventListener("DOMContentLoaded", () => {
     viewAllBtn.appendChild(viewAllInner);
 
     const parent = isMobile() ? activeDept.querySelector(".roles-inner") : rolesList;
-    console.log(`[depart] render() parent=${parent ? (isMobile() ? ".roles-inner" : "rolesList") : "NULL"}`);
-
     if (parent) {
-      const selection = selectRoles(filtered);
-      console.log(`[depart] render() appending ${selection.length} roles`);
-      selection.forEach((role, idx) => {
+      selectRoles(filtered).forEach((role, idx) => {
         parent.appendChild(role);
         Object.assign(role.style, { display: "flex", order: String(idx) });
         setTimeout(() => role.style.opacity = "1", 10);
@@ -86,7 +70,6 @@ document.addEventListener("DOMContentLoaded", () => {
   depts.forEach(dept => {
     dept.addEventListener("mouseenter", () => {
       if (isMobile() || dept.classList.contains("is-active")) return;
-      console.log(`[depart] mouseenter dept="${dept.getAttribute("data-department")}"`);
       depts.forEach(d => d.classList.remove("is-active"));
       dept.classList.add("is-active");
       render();
@@ -97,7 +80,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.target.closest(".navbar-hire_link")) e.preventDefault();
 
       const wasActive = dept.classList.contains("is-active");
-      console.log(`[depart] click dept="${dept.getAttribute("data-department")}" wasActive=${wasActive}`);
       reset();
       depts.forEach(d => d.classList.remove("is-active"));
 
@@ -110,7 +92,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   searchInput?.addEventListener("input", (e) => {
     const q = e.target.value.toLowerCase().trim();
-    console.log(`[depart] search q="${q}"`);
 
     if (q) {
       reset();
@@ -123,7 +104,6 @@ document.addEventListener("DOMContentLoaded", () => {
           count++;
         }
       });
-      console.log(`[depart] search matched ${count} roles`);
     } else {
       if (!isMobile()) initDesktop();
       render();
@@ -134,23 +114,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isMobile()) return;
 
     const roles = getRoles();
-    const allDepts = Array.from(depts);
-    const deptsWithSlug = allDepts.filter(d => d.getAttribute("data-department"));
+    if (!roles.length) return;
+
     const activeDept = document.querySelector(".department-item.is-active:not(.hide)");
-
-    console.log(`[depart] initDesktop() roles=${roles.length} depts=${allDepts.length} deptsWithSlug=${deptsWithSlug.length} active=${activeDept?.getAttribute("data-department") ?? "none"}`);
-
-    if (!roles.length) { console.warn("[depart] initDesktop() → waiting for roles"); return; }
-
     if (!activeDept) {
-      const firstDept = deptsWithSlug[0];
-      if (!firstDept) {
-        console.warn("[depart] initDesktop() → no dept has data-department yet. All dept attrs:",
-          allDepts.map(d => d.getAttribute("data-department"))
-        );
-        return;
-      }
-      console.log(`[depart] initDesktop() → setting active: "${firstDept.getAttribute("data-department")}"`);
+      const firstDept = Array.from(depts).find(d => d.getAttribute("data-department"));
+      if (!firstDept) return;
       firstDept.classList.add("is-active");
     }
 
@@ -160,7 +129,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const rolesObserver = new MutationObserver(() => {
     const currentCount = getRoles().length;
     if (currentCount <= knownRoleCount) return;
-    console.log(`[depart] rolesObserver: roles ${knownRoleCount} → ${currentCount}`);
     knownRoleCount = currentCount;
     initDesktop();
   });
@@ -168,17 +136,12 @@ document.addEventListener("DOMContentLoaded", () => {
   rolesObserver.observe(document.body, { childList: true, subtree: true });
 
   const dropdownParent = depts[0]?.closest(".w-dropdown-list") || depts[0]?.parentElement;
-  console.log("[depart] dropdownParent=", dropdownParent?.className);
-
   if (dropdownParent) {
     new MutationObserver((mutations) => {
-      const changed = mutations.some(m => m.type === "attributes");
-      if (!changed) return;
-      console.log(`[depart] dropdownObserver: attr change on dropdown parent, class="${dropdownParent.className}" style="${dropdownParent.style.cssText}"`);
+      if (!mutations.some(m => m.type === "attributes")) return;
       if (!isMobile()) initDesktop();
     }).observe(dropdownParent, { attributes: true, attributeFilter: ["class", "style"] });
   }
 
-  console.log("[depart] observers started, calling initDesktop()");
   initDesktop();
 });
