@@ -157,17 +157,28 @@ document.addEventListener("DOMContentLoaded", () => {
     render();
   };
 
-  const observer = new MutationObserver(() => {
+  const rolesObserver = new MutationObserver(() => {
     const currentCount = getRoles().length;
     if (currentCount <= knownRoleCount) return;
-
-    console.log(`[depart] observer: roles ${knownRoleCount} → ${currentCount}`);
+    console.log(`[depart] rolesObserver: roles ${knownRoleCount} → ${currentCount}`);
     knownRoleCount = currentCount;
     initDesktop();
   });
 
-  observer.observe(document.body, { childList: true, subtree: true });
+  rolesObserver.observe(document.body, { childList: true, subtree: true });
 
-  console.log("[depart] observer started, calling initDesktop()");
+  const dropdownParent = depts[0]?.closest(".w-dropdown-list") || depts[0]?.parentElement;
+  console.log("[depart] dropdownParent=", dropdownParent?.className);
+
+  if (dropdownParent) {
+    new MutationObserver((mutations) => {
+      const changed = mutations.some(m => m.type === "attributes");
+      if (!changed) return;
+      console.log(`[depart] dropdownObserver: attr change on dropdown parent, class="${dropdownParent.className}" style="${dropdownParent.style.cssText}"`);
+      if (!isMobile()) initDesktop();
+    }).observe(dropdownParent, { attributes: true, attributeFilter: ["class", "style"] });
+  }
+
+  console.log("[depart] observers started, calling initDesktop()");
   initDesktop();
 });
