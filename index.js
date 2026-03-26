@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const render = () => {
-    const activeDept = document.querySelector(".department-item.is-active");
+    const activeDept = document.querySelector(".department-item.is-active:not(.hide)");
     if (!activeDept) { console.warn("[depart] render() → BAIL: no active dept"); return; }
 
     const slug = activeDept.getAttribute("data-department")?.toLowerCase().trim();
@@ -136,7 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const roles = getRoles();
     const allDepts = Array.from(depts);
     const deptsWithSlug = allDepts.filter(d => d.getAttribute("data-department"));
-    const activeDept = document.querySelector(".department-item.is-active");
+    const activeDept = document.querySelector(".department-item.is-active:not(.hide)");
 
     console.log(`[depart] initDesktop() roles=${roles.length} depts=${allDepts.length} deptsWithSlug=${deptsWithSlug.length} active=${activeDept?.getAttribute("data-department") ?? "none"}`);
 
