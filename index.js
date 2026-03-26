@@ -11,7 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   let knownRoleCount = 0;
-  let isDesktopInitialized = false;
 
   const reset = () => {
     console.log("[depart] reset()");
@@ -115,36 +114,29 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const initDesktop = () => {
-    if (isMobile() || isDesktopInitialized) return;
+    if (isMobile()) return;
 
     const roles = getRoles();
     console.log(`[depart] initDesktop() roles=${roles.length} depts=${depts.length}`);
-    if (roles.length === 0) { console.log("[depart] initDesktop() → waiting for roles"); return; }
+    if (!roles.length) { console.log("[depart] initDesktop() → waiting for roles"); return; }
 
-    const firstDept = Array.from(depts).find(d => d.getAttribute("data-department")) ?? depts[0];
-    console.log(`[depart] initDesktop() firstDept=`, firstDept);
-    if (firstDept) {
+    if (!document.querySelector(".department-item.is-active")) {
+      const firstDept = Array.from(depts).find(d => d.getAttribute("data-department"));
+      console.log(`[depart] initDesktop() firstDept=`, firstDept?.getAttribute("data-department"));
+      if (!firstDept) { console.log("[depart] initDesktop() → no dept with data-department yet"); return; }
       firstDept.classList.add("is-active");
-      render();
-      isDesktopInitialized = true;
     }
+
+    render();
   };
 
   const observer = new MutationObserver(() => {
-    if (!isDesktopInitialized && !isMobile()) {
-      initDesktop();
-    }
-
     const currentCount = getRoles().length;
-    if (currentCount > knownRoleCount) {
-      console.log(`[depart] observer: roles ${knownRoleCount} → ${currentCount}`);
-      knownRoleCount = currentCount;
-      if (document.querySelector(".department-item.is-active")) {
-        observer.disconnect();
-        render();
-        observer.observe(document.body, { childList: true, subtree: true });
-      }
-    }
+    if (currentCount <= knownRoleCount) return;
+
+    console.log(`[depart] observer: roles ${knownRoleCount} → ${currentCount}`);
+    knownRoleCount = currentCount;
+    initDesktop();
   });
 
   observer.observe(document.body, { childList: true, subtree: true });
