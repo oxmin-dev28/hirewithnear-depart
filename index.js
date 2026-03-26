@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let isDesktopInitialized = false;
 
   const reset = () => {
+    console.log("[depart] reset()");
     getRoles().forEach(role => {
       rolesList.appendChild(role);
       Object.assign(role.style, { display: "none", opacity: "0", order: "999" });
@@ -31,14 +32,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const render = () => {
     const activeDept = document.querySelector(".department-item.is-active");
-    if (!activeDept) return;
+    if (!activeDept) { console.log("[depart] render() → no active dept"); return; }
 
     const slug = activeDept.getAttribute("data-department")?.toLowerCase().trim();
-    if (!slug) return;
+    if (!slug) { console.log("[depart] render() → no slug on active dept"); return; }
 
     const roles = getRoles();
-    if (!roles.length) return;
+    if (!roles.length) { console.log("[depart] render() → no roles in DOM"); return; }
 
+    console.log(`[depart] render() slug="${slug}" roles=${roles.length}`);
     reset();
 
     const deptLink = activeDept.querySelector(".navbar-hire_link");
@@ -58,6 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
     const parent = isMobile() ? activeDept.querySelector(".roles-inner") : rolesList;
+    console.log(`[depart] render() filtered=${filtered.length} parent=${parent ? (isMobile() ? "roles-inner" : "rolesList") : "null"}`);
     if (parent) {
       selectRoles(filtered).forEach((role, idx) => {
         parent.appendChild(role);
@@ -115,9 +118,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isMobile() || isDesktopInitialized) return;
 
     const roles = getRoles();
-    if (roles.length === 0) return;
+    console.log(`[depart] initDesktop() roles=${roles.length} depts=${depts.length}`);
+    if (roles.length === 0) { console.log("[depart] initDesktop() → waiting for roles"); return; }
 
     const firstDept = Array.from(depts).find(d => d.getAttribute("data-department")) ?? depts[0];
+    console.log(`[depart] initDesktop() firstDept=`, firstDept);
     if (firstDept) {
       firstDept.classList.add("is-active");
       render();
@@ -132,6 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const currentCount = getRoles().length;
     if (currentCount > knownRoleCount) {
+      console.log(`[depart] observer: roles ${knownRoleCount} → ${currentCount}`);
       knownRoleCount = currentCount;
       if (document.querySelector(".department-item.is-active")) {
         observer.disconnect();
